@@ -1,7 +1,7 @@
 // ==========================================
 // ⚠️ 个人自用硬编码密钥，请勿分享此文件！
 // ==========================================
-const HARDCODED_OPENROUTER_API_KEY = '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';
+const HARDCODED_OPENROUTER_API_KEY = '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';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const GITHUB_ENDPOINT = 'https://models.github.ai/inference/chat/completions';
