@@ -1,3 +1,8 @@
+// ==========================================
+// ⚠️ 个人自用硬编码密钥，请勿分享此文件！
+// ==========================================
+const HARDCODED_OPENROUTER_API_KEY = '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';
+
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const GITHUB_ENDPOINT = 'https://models.github.ai/inference/chat/completions';
 const GITHUB_CATALOG_ENDPOINT = 'https://models.github.ai/catalog/models';
@@ -71,8 +76,9 @@ export default async function handler(req, res) {
 }
 
 async function handleOpenRouter(req, res, payload, model, prompt) {
-  const apiKey = payload.apiKey || process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
+  // 核心修复：直接使用硬编码的密钥
+  const apiKey = HARDCODED_OPENROUTER_API_KEY;
+  if (!apiKey || apiKey.startsWith('请在此粘贴')) {
     res.status(401).json({ ok: false, error: 'Missing OpenRouter API key' });
     return;
   }
@@ -101,7 +107,7 @@ async function handleOpenRouter(req, res, payload, model, prompt) {
 }
 
 async function handleGitHub(req, res, payload, model, prompt) {
-  const apiKey = payload.apiKey || process.env.GITHUB_TOKEN;
+  const apiKey = readSecret(payload.apiKey, process.env.GITHUB_TOKEN);
   if (!apiKey) {
     res.status(401).json({ ok: false, error: 'Missing GitHub token' });
     return;
@@ -148,7 +154,8 @@ async function handleCustom(req, res, payload, model, prompt) {
   }
 
   const headers = { 'Content-Type': 'application/json' };
-  if (payload.apiKey) headers.Authorization = `Bearer ${payload.apiKey}`;
+  const apiKey = readSecret(payload.apiKey);
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
   const body = {
     model,
@@ -180,6 +187,15 @@ function buildUserContent(prompt, image) {
       }
     }
   ];
+}
+
+function readSecret(...values) {
+  for (const value of values) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return '';
 }
 
 async function sendGenerationResponse(res, upstream, model) {
