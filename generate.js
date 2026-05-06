@@ -71,8 +71,13 @@ export default async function handler(req, res) {
 }
 
 async function handleOpenRouter(req, res, payload, model, prompt) {
-  const apiKey = readSecret(payload.apiKey, process.env.OPENROUTER_API_KEY);
+  // 核心修复：强化环境变量读取
+  const envKey = process.env.OPENROUTER_API_KEY;
+  const userKey = payload.apiKey;
+  
+  const apiKey = readSecret(userKey, envKey);
   if (!apiKey) {
+    console.error('[ERROR] Missing OpenRouter API key');
     res.status(401).json({ ok: false, error: 'Missing OpenRouter API key' });
     return;
   }
