@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<!-- Based on melvincarvalho/melchat dist/index.html: single-file, no-build chat UI. -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MelChat 图像生成</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --text: #172033;
+      --muted: #667085;
+      --line: #d8dee9;
+      --brand: #1f7a68;
+      --brand-strong: #165d50;
+      --danger: #b42318;
+      --shadow: 0 18px 45px rgba(16, 24, 40, 0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      height: 100vh;
+      max-width: 1480px;
+      margin: 0 auto;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: #f6f8fb;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sidebar-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .new-chat {
+      width: 100%;
+      height: 40px;
+      border: 0;
+      border-radius: var(--radius);
+      background: var(--brand);
+      color: #fff;
+      font-weight: 650;
+    }
+
+    .new-chat:hover {
+      background: var(--brand-strong);
+    }
+
+    .conversation-list {
+      flex: 1;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    .conversation {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+      padding: 10px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .conversation:hover,
+    .conversation.active {
+      border-color: #bfd8d2;
+      background: #eaf4f1;
+    }
+
+    .conversation-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .conversation-date {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .conversation-delete {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .conversation-delete:hover {
+      background: #ffffff;
+      color: var(--danger);
+    }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      height: 100vh;
+      background: var(--panel);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .chat-title {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 18px;
+      font-weight: 750;
+    }
+
+    .status {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .select,
+    .text-input {
+      height: 38px;
+      min-width: 180px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+      padding: 0 10px;
+    }
+
+    .custom-model {
+      width: 220px;
+    }
+
+    .icon-btn,
+    .secondary-btn,
+    .primary-btn {
+      height: 38px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      padding: 0 12px;
+      font-weight: 650;
+    }
+
+    .icon-btn {
+      width: 40px;
+      padding: 0;
+      font-size: 18px;
+    }
+
+    .secondary-btn:hover,
+    .icon-btn:hover {
+      border-color: #9fb5af;
+      background: #f2f7f5;
+    }
+
+    .primary-btn {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .primary-btn:hover {
+      background: var(--brand-strong);
+    }
+
+    .messages {
+      overflow: auto;
+      padding: 22px;
+      background:
+        linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)),
+        repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(31,122,104,0.05) 32px);
+    }
+
+    .empty {
+      height: 100%;
+      display: grid;
+      place-content: center;
+      gap: 8px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty strong {
+      color: var(--text);
+      font-size: 20px;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 820px);
+      gap: 10px;
+      margin: 0 auto 18px;
+      max-width: 920px;
+    }
+
+    .message.user {
+      grid-template-columns: minmax(0, 820px) 36px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #dfe7f2;
+      color: #24304a;
+      font-weight: 800;
+      user-select: none;
+    }
+
+    .user .avatar {
+      grid-column: 2;
+      grid-row: 1;
+      background: #dcefe9;
+      color: #0d4f43;
+    }
+
+    .bubble {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      line-height: 1.58;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .user .bubble {
+      grid-column: 1;
+      background: #f0f8f5;
+      border-color: #cde4dd;
+    }
+
+    .meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .chat-image-link {
+      display: block;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .chat-image {
+      display: block;
+      width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+    }
+
+    .composer {
+      border-top: 1px solid var(--line);
+      background: #fff;
+      padding: 12px 16px 16px;
+    }
+
+    .attachment-preview {
+      display: none;
+      max-width: 920px;
+      margin: 0 auto 10px;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+      padding: 8px;
+    }
+
+    .attachment-preview.active {
+      display: flex;
+    }
+
+    .attachment-preview img {
+      width: 58px;
+      height: 58px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+    }
+
+    .attachment-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .composer-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      gap: 8px;
+      max-width: 920px;
+      margin: 0 auto;
+      align-items: end;
+    }
+
+    textarea {
+      min-height: 44px;
+      max-height: 170px;
+      resize: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 11px 12px;
+      line-height: 1.45;
+    }
+
+    textarea:focus,
+    input:focus,
+    select:focus {
+      outline: 2px solid rgba(31, 122, 104, 0.24);
+      border-color: var(--brand);
+    }
+
+    .settings {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.42);
+      z-index: 20;
+    }
+
+    .settings.active {
+      display: grid;
+    }
+
+    .dialog {
+      width: min(620px, 100%);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .dialog h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      color: #344054;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .field small {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0 10px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 88px;
+      transform: translateX(-50%);
+      max-width: min(520px, calc(100vw - 32px));
+      display: none;
+      border-radius: var(--radius);
+      background: #172033;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 14px;
+      box-shadow: var(--shadow);
+      z-index: 30;
+    }
+
+    .toast.active {
+      display: block;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 820px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        min-height: 100vh;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        justify-content: stretch;
+      }
+
+      .select,
+      .text-input,
+      .custom-model {
+        flex: 1 1 150px;
+        min-width: 0;
+        width: auto;
+      }
+
+      .messages {
+        padding: 14px;
+      }
+
+      .message,
+      .message.user {
+        grid-template-columns: 32px minmax(0, 1fr);
+      }
+
+      .message.user .avatar {
+        grid-column: 1;
+      }
+
+      .message.user .bubble {
+        grid-column: 2;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+      }
+
+      .composer-row {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+      }
+
+      #stopBtn {
+        grid-column: 3;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <p class="sidebar-title">MelChat 图像生成</p>
+        <button class="new-chat" type="button" id="newChatBtn">新建聊天</button>
+      </div>
+      <div class="conversation-list" id="conversationList"></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title-block">
+          <h1 class="chat-title" id="chatTitle">新建聊天</h1>
+          <div class="status" id="statusText">OpenRouter 优先，个人 Key 仅保存在内存中</div>
+        </div>
+        <div class="controls">
+          <select class="select" id="providerSelect" title="服务提供方">
+            <option value="openrouter">OpenRouter</option>
+            <option value="github">GitHub Models</option>
+            <option value="custom">自定义兼容接口</option>
+          </select>
+          <select class="select" id="modelSelect" title="模型"></select>
+          <input class="text-input custom-model" id="customModelInput" type="text" placeholder="手动模型名">
+          <button class="secondary-btn" type="button" id="settingsBtn">设置</button>
+          <button class="secondary-btn" type="button" id="clearBtn">清空</button>
+        </div>
+      </header>
+
+      <section class="messages" id="messages"></section>
+
+      <footer class="composer">
+        <div class="attachment-preview" id="attachmentPreview">
+          <img id="attachmentThumb" alt="上传图片预览">
+          <div class="attachment-name" id="attachmentName"></div>
+          <button class="secondary-btn" type="button" id="removeAttachmentBtn">移除</button>
+        </div>
+        <div class="composer-row">
+          <input id="fileInput" class="hidden" type="file" accept="image/*">
+          <button class="icon-btn" type="button" id="attachBtn" title="上传图片" aria-label="上传图片">📎</button>
+          <textarea id="promptInput" rows="1" placeholder="描述你想生成或修改的图片。按 Enter 发送，Shift+Enter 换行。"></textarea>
+          <button class="primary-btn" type="button" id="sendBtn">发送</button>
+          <button class="secondary-btn hidden" type="button" id="stopBtn">停止</button>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div class="settings" id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="dialog">
+      <h2 id="settingsTitle">设置</h2>
+      <div class="field">
+        <label for="sessionApiKey">个人 API Key</label>
+        <input id="sessionApiKey" type="password" autocomplete="off" placeholder="留空则使用 Vercel 环境变量">
+        <small>该 Key 只保存在当前页面内存中，不写入 LocalStorage，刷新页面后消失。</small>
+      </div>
+      <div class="field">
+        <label for="customBaseUrl">自定义兼容接口 Base URL</label>
+        <input id="customBaseUrl" type="url" placeholder="https://example.com/v1">
+        <small>仅 provider 选择“自定义兼容接口”时使用，会请求 `${baseUrl}/chat/completions`。</small>
+      </div>
+      <div class="field">
+        <label for="systemNote">本地备注</label>
+        <input id="systemNote" type="text" placeholder="不会发送给模型，仅显示在状态栏">
+        <small>用于标记当前 Key 或部署环境，不包含敏感信息。</small>
+      </div>
+      <div class="dialog-actions">
+        <button class="secondary-btn" type="button" id="closeSettingsBtn">取消</button>
+        <button class="primary-btn" type="button" id="saveSettingsBtn">保存到内存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const PRESET_MODELS = [
+      { id: "openai/gpt-4o", name: "OpenAI GPT-4o", provider: "openrouter", supportsTextToImage: true, supportsImageToImage: true },
+      { id: "qwen/qwen-image", name: "Qwen Image", provider: "openrouter", supportsTextToImage: true, supportsImageToImage: true },
+      { id: "janus-4o", name: "Janus-4o", provider: "openrouter", supportsTextToImage: true, supportsImageToImage: true },
+      { id: "black-forest-labs/flux.2-klein-4b", name: "Flux.2 Klein 4B", provider: "openrouter", supportsTextToImage: true, supportsImageToImage: false }
+    ];
+
+    const STORE_KEY = "melchat_image_conversations_v1";
+    const PREF_KEY = "melchat_image_preferences_v1";
+
+    const state = {
+      conversations: {},
+      currentId: "",
+      models: PRESET_MODELS,
+      provider: "openrouter",
+      model: "openai/gpt-4o",
+      customModel: "",
+      customBaseUrl: "",
+      sessionApiKey: "",
+      systemNote: "",
+      attachment: null,
+      abortController: null,
+      isLoading: false
+    };
+
+    const els = {};
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    function init() {
+      bindElements();
+      loadState();
+      bindEvents();
+      populateModels();
+      fetchModels();
+      ensureConversation();
+      render();
+      updateStatus();
+    }
+
+    function bindElements() {
+      Object.assign(els, {
+        conversationList: document.getElementById("conversationList"),
+        newChatBtn: document.getElementById("newChatBtn"),
+        chatTitle: document.getElementById("chatTitle"),
+        statusText: document.getElementById("statusText"),
+        providerSelect: document.getElementById("providerSelect"),
+        modelSelect: document.getElementById("modelSelect"),
+        customModelInput: document.getElementById("customModelInput"),
+        settingsBtn: document.getElementById("settingsBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        messages: document.getElementById("messages"),
+        attachmentPreview: document.getElementById("attachmentPreview"),
+        attachmentThumb: document.getElementById("attachmentThumb"),
+        attachmentName: document.getElementById("attachmentName"),
+        removeAttachmentBtn: document.getElementById("removeAttachmentBtn"),
+        fileInput: document.getElementById("fileInput"),
+        attachBtn: document.getElementById("attachBtn"),
+        promptInput: document.getElementById("promptInput"),
+        sendBtn: document.getElementById("sendBtn"),
+        stopBtn: document.getElementById("stopBtn"),
+        settingsOverlay: document.getElementById("settingsOverlay"),
+        sessionApiKey: document.getElementById("sessionApiKey"),
+        customBaseUrl: document.getElementById("customBaseUrl"),
+        systemNote: document.getElementById("systemNote"),
+        closeSettingsBtn: document.getElementById("closeSettingsBtn"),
+        saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+        toast: document.getElementById("toast")
+      });
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+        state.conversations = saved.conversations || {};
+        state.currentId = saved.currentId || "";
+      } catch {
+        state.conversations = {};
+      }
+
+      try {
+        const prefs = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+        state.provider = prefs.provider || state.provider;
+        state.model = prefs.model || state.model;
+        state.customModel = prefs.customModel || "";
+        state.customBaseUrl = prefs.customBaseUrl || "";
+        state.systemNote = prefs.systemNote || "";
+      } catch {
+        state.provider = "openrouter";
+      }
+    }
+
+    function saveConversations() {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        conversations: state.conversations,
+        currentId: state.currentId
+      }));
+    }
+
+    function savePreferences() {
+      localStorage.setItem(PREF_KEY, JSON.stringify({
+        provider: state.provider,
+        model: state.model,
+        customModel: state.customModel,
+        customBaseUrl: state.customBaseUrl,
+        systemNote: state.systemNote
+      }));
+    }
+
+    function bindEvents() {
+      els.newChatBtn.addEventListener("click", newConversation);
+      els.settingsBtn.addEventListener("click", showSettings);
+      els.clearBtn.addEventListener("click", clearCurrentConversation);
+      els.closeSettingsBtn.addEventListener("click", hideSettings);
+      els.saveSettingsBtn.addEventListener("click", saveSettings);
+      els.settingsOverlay.addEventListener("click", (event) => {
+        if (event.target === els.settingsOverlay) hideSettings();
+      });
+
+      els.providerSelect.addEventListener("change", () => {
+        state.provider = els.providerSelect.value;
+        savePreferences();
+        populateModels();
+        updateStatus();
+      });
+
+      els.modelSelect.addEventListener("change", () => {
+        state.model = els.modelSelect.value;
+        if (state.model !== "__custom__") {
+          els.customModelInput.value = "";
+          state.customModel = "";
+        }
+        savePreferences();
+        updateStatus();
+      });
+
+      els.customModelInput.addEventListener("input", () => {
+        state.customModel = els.customModelInput.value.trim();
+        if (state.customModel) {
+          state.model = "__custom__";
+          els.modelSelect.value = "__custom__";
+        }
+        savePreferences();
+        updateStatus();
+      });
+
+      els.attachBtn.addEventListener("click", () => els.fileInput.click());
+      els.fileInput.addEventListener("change", handleFileSelect);
+      els.removeAttachmentBtn.addEventListener("click", clearAttachment);
+      els.sendBtn.addEventListener("click", sendMessage);
+      els.stopBtn.addEventListener("click", stopRequest);
+
+      els.promptInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+
+      els.promptInput.addEventListener("input", () => {
+        els.promptInput.style.height = "auto";
+        els.promptInput.style.height = Math.min(els.promptInput.scrollHeight, 170) + "px";
+      });
+    }
+
+    async function fetchModels() {
+      try {
+        const response = await fetch("/api/models");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (Array.isArray(data.models) && data.models.length) {
+          state.models = data.models;
+          populateModels();
+        }
+      } catch {
+        state.models = PRESET_MODELS;
+      }
+    }
+
+    function populateModels() {
+      els.providerSelect.value = state.provider;
+      els.modelSelect.innerHTML = "";
+
+      const providerModels = state.models.filter((model) => model.provider === state.provider);
+      for (const model of providerModels) {
+        const option = document.createElement("option");
+        option.value = model.id;
+        option.textContent = `${model.name} (${model.id})`;
+        els.modelSelect.appendChild(option);
+      }
+
+      const customOption = document.createElement("option");
+      customOption.value = "__custom__";
+      customOption.textContent = "手动输入模型名";
+      els.modelSelect.appendChild(customOption);
+
+      const available = providerModels.some((model) => model.id === state.model);
+      els.modelSelect.value = available ? state.model : "__custom__";
+      els.customModelInput.value = state.customModel;
+      updateStatus();
+    }
+
+    function ensureConversation() {
+      if (state.currentId && state.conversations[state.currentId]) return;
+      const ids = Object.keys(state.conversations);
+      if (ids.length) {
+        state.currentId = ids[0];
+        return;
+      }
+      newConversation(false);
+    }
+
+    function newConversation(shouldRender = true) {
+      const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+      state.conversations[id] = {
+        id,
+        title: "新建聊天",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        messages: []
+      };
+      state.currentId = id;
+      saveConversations();
+      clearAttachment();
+      if (shouldRender) render();
+    }
+
+    function currentConversation() {
+      return state.conversations[state.currentId];
+    }
+
+    function render() {
+      renderConversations();
+      renderMessages();
+      renderAttachment();
+    }
+
+    function renderConversations() {
+      const conversations = Object.values(state.conversations)
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+
+      els.conversationList.innerHTML = "";
+      for (const conv of conversations) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `conversation ${conv.id === state.currentId ? "active" : ""}`;
+        item.addEventListener("click", () => {
+          state.currentId = conv.id;
+          saveConversations();
+          clearAttachment();
+          render();
+        });
+
+        const title = document.createElement("span");
+        title.className = "conversation-name";
+        title.textContent = conv.title;
+        item.appendChild(title);
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "conversation-delete";
+        del.textContent = "×";
+        del.title = "删除";
+        del.addEventListener("click", (event) => {
+          event.stopPropagation();
+          deleteConversation(conv.id);
+        });
+        item.appendChild(del);
+
+        const date = document.createElement("span");
+        date.className = "conversation-date";
+        date.textContent = new Date(conv.updatedAt).toLocaleString();
+        item.appendChild(date);
+
+        els.conversationList.appendChild(item);
+      }
+    }
+
+    function renderMessages() {
+      const conv = currentConversation();
+      els.chatTitle.textContent = conv?.title || "新建聊天";
+      els.messages.innerHTML = "";
+
+      if (!conv || conv.messages.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.innerHTML = "<strong>开始生成图片</strong><span>输入描述即可文生图，上传图片后会进入图生图。</span>";
+        els.messages.appendChild(empty);
+        return;
+      }
+
+      for (const message of conv.messages) {
+        els.messages.appendChild(createMessageElement(message));
+      }
+      els.messages.scrollTop = els.messages.scrollHeight;
+    }
+
+    function createMessageElement(message) {
+      const row = document.createElement("article");
+      row.className = `message ${message.role}`;
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = message.role === "user" ? "你" : "AI";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+
+      const text = document.createElement("div");
+      text.className = "message-text";
+      text.innerHTML = renderRichText(message.text || "");
+      bubble.appendChild(text);
+
+      const imageUrls = collectRenderableImages(message);
+      if (imageUrls.length) {
+        bubble.appendChild(createImageGrid(imageUrls));
+      }
+
+      if (message.meta) {
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = message.meta;
+        bubble.appendChild(meta);
+      }
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      return row;
+    }
+
+    function collectRenderableImages(message) {
+      const images = [];
+      for (const url of message.images || []) {
+        if (isImageSource(url)) images.push(url);
+      }
+      for (const url of extractImageUrls(message.text || "")) {
+        if (isImageSource(url)) images.push(url);
+      }
+      return [...new Set(images)];
+    }
+
+    function createImageGrid(urls) {
+      const grid = document.createElement("div");
+      grid.className = "image-grid";
+      for (const url of urls) {
+        const link = document.createElement("a");
+        link.className = "chat-image-link";
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        const img = document.createElement("img");
+        img.className = "chat-image";
+        img.src = url;
+        img.alt = "生成图片";
+        img.loading = "lazy";
+
+        link.appendChild(img);
+        grid.appendChild(link);
+      }
+      return grid;
+    }
+
+    function renderRichText(raw) {
+      const images = new Set(extractImageUrls(raw));
+      let text = escapeHtml(raw);
+
+      text = text.replace(/!\[([^\]]*)]\(([^)\s]+)\)/g, (_match, alt, url) => {
+        if (!isImageSource(url)) return escapeHtml(url);
+        images.add(url);
+        return "";
+      });
+
+      text = text.replace(/(https?:\/\/[^\s"'<>]+|data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/=]+)/g, (url) => {
+        if (!isBareImageUrl(url)) return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        images.add(url);
+        return "";
+      });
+
+      return text.trim() || "";
+    }
+
+    function extractImageUrls(text) {
+      const urls = [];
+      const markdown = /!\[[^\]]*]\(([^)\s]+)\)/g;
+      const bare = /(https?:\/\/[^\s"'<>]+\.(?:png|jpe?g|gif|webp|avif)(?:\?[^\s"'<>]*)?|data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/=]+)/g;
+      let match;
+
+      while ((match = markdown.exec(text)) !== null) urls.push(match[1]);
+      while ((match = bare.exec(text)) !== null) urls.push(match[1]);
+
+      return urls;
+    }
+
+    function isImageSource(url) {
+      return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(url)
+        || /^https?:\/\/[^\s"'<>]+$/i.test(url);
+    }
+
+    function isBareImageUrl(url) {
+      return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(url)
+        || /^https?:\/\/[^\s"'<>]+\.(png|jpe?g|gif|webp|avif)(\?[^\s"'<>]*)?$/i.test(url);
+    }
+
+    async function handleFileSelect() {
+      const file = els.fileInput.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        showToast("请选择图片文件");
+        return;
+      }
+
+      try {
+        const dataUrl = await resizeImage(file, 1600, 0.86);
+        if (dataUrl.length > 7_500_000) {
+          throw new Error("图片仍然过大，请换一张较小的图片");
+        }
+        state.attachment = {
+          name: file.name,
+          mimeType: dataUrl.slice(5, dataUrl.indexOf(";")),
+          dataUrl
+        };
+        renderAttachment();
+      } catch (error) {
+        showToast(error.message || "图片读取失败");
+      } finally {
+        els.fileInput.value = "";
+      }
+    }
+
+    function renderAttachment() {
+      if (!state.attachment) {
+        els.attachmentPreview.classList.remove("active");
+        els.attachmentThumb.removeAttribute("src");
+        els.attachmentName.textContent = "";
+        return;
+      }
+
+      els.attachmentPreview.classList.add("active");
+      els.attachmentThumb.src = state.attachment.dataUrl;
+      els.attachmentName.textContent = state.attachment.name;
+    }
+
+    function clearAttachment() {
+      state.attachment = null;
+      if (els.attachmentPreview) renderAttachment();
+    }
+
+    async function resizeImage(file, maxSide, quality) {
+      const dataUrl = await readFileAsDataUrl(file);
+      const img = await loadImage(dataUrl);
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const mime = file.type === "image/png" ? "image/png" : "image/jpeg";
+      return canvas.toDataURL(mime, mime === "image/png" ? undefined : quality);
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("图片读取失败"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("图片解析失败"));
+        img.src = src;
+      });
+    }
+
+    async function sendMessage() {
+      if (state.isLoading) return;
+
+      const prompt = els.promptInput.value.trim();
+      if (!prompt) {
+        showToast("请输入图片描述");
+        return;
+      }
+
+      const model = effectiveModel();
+      if (!model) {
+        showToast("请选择或输入模型名");
+        return;
+      }
+
+      if (state.provider === "custom" && !state.customBaseUrl) {
+        showToast("自定义接口需要先填写 Base URL");
+        showSettings();
+        return;
+      }
+
+      const conv = currentConversation();
+      if (conv.messages.length === 0) {
+        conv.title = prompt.slice(0, 28) + (prompt.length > 28 ? "..." : "");
+      }
+
+      const userMessage = {
+        role: "user",
+        text: prompt,
+        images: state.attachment ? [state.attachment.dataUrl] : [],
+        meta: state.attachment ? `图生图输入：${state.attachment.name}` : "文生图输入"
+      };
+
+      conv.messages.push(userMessage);
+      conv.updatedAt = Date.now();
+      saveConversations();
+
+      const image = state.attachment;
+      els.promptInput.value = "";
+      els.promptInput.style.height = "auto";
+      clearAttachment();
+      render();
+      setLoading(true);
+
+      try {
+        state.abortController = new AbortController();
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: state.provider,
+            model,
+            prompt,
+            image,
+            apiKey: state.sessionApiKey || undefined,
+            baseUrl: state.customBaseUrl || undefined
+          }),
+          signal: state.abortController.signal
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || `请求失败：${response.status}`);
+        }
+
+        conv.messages.push({
+          role: "assistant",
+          text: data.text || "",
+          images: data.images || [],
+          meta: `模型：${data.model || model} · ${new Date().toLocaleString()}`
+        });
+      } catch (error) {
+        conv.messages.push({
+          role: "assistant",
+          text: error.name === "AbortError" ? "请求已停止。" : `生成失败：${error.message}`,
+          images: [],
+          meta: `模型：${model}`
+        });
+      } finally {
+        conv.updatedAt = Date.now();
+        saveConversations();
+        setLoading(false);
+        render();
+      }
+    }
+
+    function stopRequest() {
+      if (state.abortController) {
+        state.abortController.abort();
+        state.abortController = null;
+      }
+    }
+
+    function setLoading(loading) {
+      state.isLoading = loading;
+      els.sendBtn.classList.toggle("hidden", loading);
+      els.stopBtn.classList.toggle("hidden", !loading);
+      updateStatus(loading ? "正在请求图像模型..." : "");
+    }
+
+    function effectiveModel() {
+      if (state.model === "__custom__") return state.customModel.trim();
+      return state.model;
+    }
+
+    function showSettings() {
+      els.sessionApiKey.value = state.sessionApiKey;
+      els.customBaseUrl.value = state.customBaseUrl;
+      els.systemNote.value = state.systemNote;
+      els.settingsOverlay.classList.add("active");
+      els.sessionApiKey.focus();
+    }
+
+    function hideSettings() {
+      els.settingsOverlay.classList.remove("active");
+    }
+
+    function saveSettings() {
+      state.sessionApiKey = els.sessionApiKey.value.trim();
+      state.customBaseUrl = els.customBaseUrl.value.trim().replace(/\/$/, "");
+      state.systemNote = els.systemNote.value.trim();
+      savePreferences();
+      hideSettings();
+      updateStatus();
+      showToast(state.sessionApiKey ? "个人 API Key 已保存到内存" : "将使用服务端环境变量");
+    }
+
+    function updateStatus(override) {
+      if (override) {
+        els.statusText.textContent = override;
+        return;
+      }
+
+      const keyMode = state.sessionApiKey ? "使用内存 Key" : "使用服务端环境变量";
+      const model = effectiveModel() || "未选择模型";
+      const note = state.systemNote ? ` · ${state.systemNote}` : "";
+      els.statusText.textContent = `${state.provider} · ${model} · ${keyMode}${note}`;
+    }
+
+    function clearCurrentConversation() {
+      const conv = currentConversation();
+      if (!conv || conv.messages.length === 0) return;
+      conv.messages = [];
+      conv.title = "新建聊天";
+      conv.updatedAt = Date.now();
+      saveConversations();
+      render();
+    }
+
+    function deleteConversation(id) {
+      delete state.conversations[id];
+      state.currentId = Object.keys(state.conversations)[0] || "";
+      ensureConversation();
+      saveConversations();
+      render();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("active");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => els.toast.classList.remove("active"), 2600);
+    }
+  </script>
+</body>
+</html>

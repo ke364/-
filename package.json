@@ -1,0 +1,14 @@
+{
+  "name": "melchat-image-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "vercel:dev": "vercel dev --listen 3000",
+    "check": "node --check api/generate.js && node --check api/models.js && node --check scripts/dev-server.mjs"
+  },
+  "devDependencies": {
+    "vercel": "^44.7.3"
+  }
+}
